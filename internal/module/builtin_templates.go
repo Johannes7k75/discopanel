@@ -11,8 +11,9 @@ import (
 
 // Template ids of the panel owned global modules
 const (
-	doctorTemplateID = "builtin-doctor"
-	botTemplateID    = "builtin-bot"
+	doctorTemplateID   = "builtin-doctor"
+	botTemplateID      = "builtin-bot"
+	pangolinTemplateID = "builtin-pangolin"
 )
 
 // Panel user keeps seeded module writes owned by the panel
@@ -105,6 +106,25 @@ func botInstance() *v1.Module {
 		VolumeOverrides:       botVolumes(),
 		Uid:                   hostUID,
 		Gid:                   hostGID,
+	}
+}
+
+func pangolinInstance() *v1.Module {
+	return &v1.Module{
+		Id:                    "builtin-pangolin-instance",
+		Name:                  "Pangolin",
+		TemplateId:            pangolinTemplateID,
+		Status:                v1.ModuleStatus_MODULE_STATUS_STOPPED,
+		AutoStart:             false,
+		FollowServerLifecycle: false,
+		Memory:                256,
+		EnvOverrides: map[string]string{
+			"DOCKER_SOCKET":                     "/var/run/docker.sock",
+			"DOCKER_ENFORCE_NETWORK_VALIDATION": "true",
+		},
+		VolumeOverrides: []*v1.VolumeMount{
+			{Source: "/var/run/docker.sock", Target: "/var/run/docker.sock"},
+		},
 	}
 }
 
@@ -409,6 +429,60 @@ func InitBuiltinTemplates(store *storage.Store) error {
 			Metadata:        map[string]string{"status_path": "/status"},
 			Documentation:   "Runs the official playit.gg agent next to a gateway that rewrites incoming Minecraft handshakes onto this server's proxy hostname and relays them into the DiscoPanel proxy, keeping wake-on-connect working. Generate an agent secret key on playit.gg, set it as SECRET_KEY, then create a Minecraft Java tunnel whose local address is 127.0.0.1 on LISTEN_PORT. The provisioned secret persists in the module data volume. UDP tunnels for voice mods forward straight to the server container when UDP_FORWARD is on.",
 			DefaultMemory:   256,
+		},
+		{
+			Id:             pangolinTemplateID,
+			Name:           "Pangolin / Newt",
+			Description:    "Global tunnel connector. Connects this DiscoPanel host to a Pangolin zero-trust edge VPS using the Newt connector agent to relay traffic for all proxied servers. Preserves real player IPs using PROXY protocol.",
+			Type:           v1.ModuleTemplateType_MODULE_TEMPLATE_TYPE_BUILTIN,
+			DockerImage:    "fosrl/newt:latest",
+			Category:       "proxy",
+			SupportsProxy:  true,
+			RequiresServer: false,
+			Global:         true,
+			Icon:           "shield",
+			Ports: []*v1.NetworkPort{
+				{Name: "Status", ContainerPort: 8202, HostPort: 0, Protocol: v1.ModuleProtocol_MODULE_PROTOCOL_HTTP, ProxyEnabled: false},
+			},
+			DefaultAccessUrls: []string{"https://pangolin.net"},
+			DefaultEnv: map[string]string{
+				"DOCKER_SOCKET":                     "/var/run/docker.sock",
+				"DOCKER_ENFORCE_NETWORK_VALIDATION": "true",
+			},
+			ConfigFields: []*v1.ModuleConfigField{
+				{
+					Env:         "PANGOLIN_ENDPOINT",
+					Label:       "Pangolin Endpoint URL",
+					Description: "Address of your Pangolin control plane (e.g., https://pangolin.example.com)",
+					Type:        v1.ModuleConfigFieldType_MODULE_CONFIG_FIELD_TYPE_STRING,
+					Required:    true,
+					Placeholder: "https://pangolin.example.com",
+					Severity:    v1.ModuleConfigSeverity_MODULE_CONFIG_SEVERITY_DENY,
+				},
+				{
+					Env:         "NEWT_ID",
+					Label:       "Newt Site ID",
+					Description: "ID generated for this site in your Pangolin dashboard",
+					Type:        v1.ModuleConfigFieldType_MODULE_CONFIG_FIELD_TYPE_STRING,
+					Required:    true,
+					Placeholder: "rag57w4wnyg8k5t",
+					Severity:    v1.ModuleConfigSeverity_MODULE_CONFIG_SEVERITY_DENY,
+				},
+				{
+					Env:         "NEWT_SECRET",
+					Label:       "Newt Secret Key",
+					Description: "Secret authentication key for this Newt site",
+					Type:        v1.ModuleConfigFieldType_MODULE_CONFIG_FIELD_TYPE_PASSWORD,
+					Required:    true,
+					Placeholder: "secret key from pangolin dashboard",
+					Severity:    v1.ModuleConfigSeverity_MODULE_CONFIG_SEVERITY_DENY,
+				},
+			},
+			DefaultVolumes: []*v1.VolumeMount{
+				{Source: "/var/run/docker.sock", Target: "/var/run/docker.sock"},
+			},
+			Documentation: "Runs the official Newt client agent by Fosrl to connect this host to a Pangolin reverse proxy / zero-trust edge VPS. Configure your Pangolin endpoint, Newt ID, and Secret key obtained from your Pangolin control panel. Ensure PROXY protocol ingress is enabled on your DiscoPanel listener to preserve real player IPs.",
+			DefaultMemory: 256,
 		},
 		{
 			Id:             doctorTemplateID,

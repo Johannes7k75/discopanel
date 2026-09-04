@@ -93,6 +93,7 @@ func (m *Manager) seedGlobalModules() {
 		m.seedGlobalModule(doctorInstance(m.config))
 	}
 	m.seedGlobalModule(botInstance())
+	m.seedGlobalModule(pangolinInstance())
 }
 
 // Seeds one global module instance, starts it when enabled
