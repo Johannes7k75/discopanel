@@ -1,0 +1,25 @@
+---
+title: Pangolin / Newt
+description: Connect DiscoPanel to a Pangolin edge VPS with zero-trust tunneling and PROXY protocol IP preservation for all your servers.
+---
+
+[Pangolin](https://pangolin.net) (by Fosrl) is an identity-aware reverse proxy & zero-trust tunnel solution. The **Pangolin / Newt** module runs as a **Global Module** in DiscoPanel using the official `fosrl/newt` connector agent.
+
+Because DiscoPanel routes all proxied Minecraft servers through a shared proxy listener (e.g. port `25565`), **a single global Newt module instance** tunnels traffic for all of your Minecraft servers at once.
+
+## Setup
+
+1. On your Pangolin control plane (or VPS instance), create a **Site** and generate a **Newt ID** and **Secret Key**.
+2. In DiscoPanel, navigate to **Modules** in the main panel navigation and add the **Pangolin / Newt** global module.
+3. Configure the module fields:
+   - **Pangolin Endpoint URL**: E.g., `https://pangolin.example.com`
+   - **Newt Site ID**: The Site ID generated on Pangolin.
+   - **Newt Secret Key**: The Secret Key for your Newt site.
+4. Save and start the module.
+5. In Pangolin, configure Raw TCP resources pointing at your DiscoPanel proxy listener (default port `25565`).
+
+## PROXY Protocol & Real Player IPs
+
+When traffic is tunneled through Pangolin, enable **PROXY protocol (v1/v2) ingress** on your DiscoPanel Proxy Listener (**Settings > Network > Listener :25565**) so real player IPs are preserved across all servers.
+
+For more details on setting up PROXY protocol headers across your servers, see the [Proxy & Domains guide](/guides/proxy/).
